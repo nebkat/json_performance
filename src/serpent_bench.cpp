@@ -89,18 +89,14 @@ namespace serpent_bench
       template <class T>
       bool read(T& obj, std::string_view buffer)
       {
-         return serpent::serializer<T>::read(serpent::json::reader::over(buffer), obj);
+         return serpent::json::decode_into(buffer, obj);
       }
 
       // Writes into a buffer that is reused between iterations: cleared, so its capacity stays.
       template <class T>
       bool write(const T& obj, std::string& buffer)
       {
-         buffer.clear();
-         serpent::container_sink sink{buffer};
-         serpent::json::writer out{sink};
-         out.value(obj);
-         return out.finish().has_value();
+         return serpent::json::write(obj, buffer).has_value();
       }
    }
 
