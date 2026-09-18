@@ -933,6 +933,55 @@ auto reflect_cpp_test()
    return r;
 }
 
+#ifdef HAVE_SERPENT
+// serpent describes its types with an annotation the compiler reads, so it needs GCC 16 with
+// -std=c++26 -freflection. Only its translation unit is built that way; the timing loops there
+// do exactly what the loops here do.
+#include "serpent_bench.hpp"
+
+auto serpent_test()
+{
+   const auto timings = serpent_bench::run(json_minified, iterations);
+
+   results r{ "serpent", "https://github.com/nebkat/cpp-serpent", iterations };
+
+   r.json_roundtrip = timings.roundtrip;
+   r.json_byte_length = timings.byte_length;
+   r.json_write = timings.write;
+   r.json_read = timings.read;
+
+   if (!timings.round_trips) {
+      std::cout << "serpent did not read back what it wrote!" << std::endl;
+   }
+
+   is_valid_write<obj_t>(timings.buffer, "serpent");
+
+   r.print();
+
+   return r;
+}
+
+auto serpent_abc_test()
+{
+   const std::string buffer = glz::write_json(abc_t<true>{}).value();
+
+   const auto timings = serpent_bench::run_abc(buffer, iterations_abc);
+
+   if (!timings.correct) {
+      std::cout << "serpent abc error!" << std::endl;
+   }
+
+   results r{ "serpent", "https://github.com/nebkat/cpp-serpent", iterations_abc };
+
+   r.json_byte_length = timings.byte_length;
+   r.json_read = timings.read;
+
+   r.print(false);
+
+   return r;
+}
+#endif
+
 #include "simdjson.h"
 
 // Note: the on demand parser does not allow multiple instances of the same key with different data specified
@@ -1955,6 +2004,9 @@ void test0()
    results.emplace_back(simdjson_test());
    results.emplace_back(yyjson_test());
    results.emplace_back(reflect_cpp_test());
+#ifdef HAVE_SERPENT
+   results.emplace_back(serpent_test());
+#endif
    results.emplace_back(daw_json_link_test());
    results.emplace_back(rapidjson_test());
    results.emplace_back(json_struct_test());
@@ -1983,6 +2035,9 @@ void abc_test()
    results.emplace_back(glaze_abc_test());
    //results.emplace_back(daw_json_link_abc_test());
    results.emplace_back(simdjson_abc_test());
+#ifdef HAVE_SERPENT
+   results.emplace_back(serpent_abc_test());
+#endif
    
    std::ofstream table{ "json_stats_abc.md" };
    if (table) {

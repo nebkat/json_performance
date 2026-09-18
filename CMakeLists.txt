@@ -100,6 +100,27 @@ set(BOOST_INCLUDE_LIBRARIES json)
 
 FetchContent_MakeAvailable(boost)
 
+# serpent describes its types by annotation, which needs GCC 16 with -std=c++26 -freflection, so
+# only its own translation unit is built that way: -DWITH_SERPENT=OFF on any other compiler. The
+# repository is private and is fetched over SSH, so it needs a key that can read it;
+# -DSERPENT_SOURCE_DIR=/path/to/cpp-serpent builds a local checkout instead.
+option(WITH_SERPENT "Build the serpent contender (needs GCC 16 with -freflection)" ON)
+set(SERPENT_SOURCE_DIR "" CACHE PATH "Local cpp-serpent checkout to use instead of fetching it")
+
+if (WITH_SERPENT)
+  if (SERPENT_SOURCE_DIR)
+    FetchContent_Declare(serpent SOURCE_DIR "${SERPENT_SOURCE_DIR}")
+  else()
+    FetchContent_Declare(
+      serpent
+      GIT_REPOSITORY git@github.com:nebkat/cpp-serpent.git
+      GIT_TAG main
+      GIT_SHALLOW TRUE
+    )
+  endif()
+  FetchContent_MakeAvailable(serpent)
+endif()
+
 add_executable(${PROJECT_NAME} src/main.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE include ${json_struct_SOURCE_DIR}/include ${rapidjson_SOURCE_DIR}/include ${reflect_cpp_SOURCE_DIR}/include)
@@ -107,6 +128,16 @@ target_include_directories(${PROJECT_NAME} PRIVATE include ${json_struct_SOURCE_
 find_package(Qt5 COMPONENTS Core)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json glaze::glaze daw::daw-json-link simdjson yyjson fmt::fmt Boost::json reflectcpp)
+
+if (WITH_SERPENT)
+  add_library(serpent_bench STATIC src/serpent_bench.cpp)
+  target_include_directories(serpent_bench PUBLIC include)
+  target_link_libraries(serpent_bench PRIVATE serpent::serpent)
+  set_target_properties(serpent_bench PROPERTIES CXX_STANDARD 26 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+  target_compile_options(serpent_bench PRIVATE -freflection)
+  target_link_libraries(${PROJECT_NAME} PRIVATE serpent_bench)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_SERPENT=1)
+endif()
 
 if (Qt5_FOUND)
   target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_QT=1)
