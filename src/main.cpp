@@ -39,6 +39,7 @@ constexpr std::string_view json_minified = R"({"fixed_object":{"int_array":[0,1,
 
 #include <chrono>
 #include <iostream>
+#include <numeric>
 #include <unordered_map>
 
 #include <format>

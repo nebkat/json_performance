@@ -117,6 +117,11 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    # GCC 15+ diagnoses template bodies before instantiation; RapidJSON 1.1.0 has an
+    # unused GenericStringRef::operator= that assigns a const member and does not survive it.
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-template-body)
+  endif()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   target_compile_options(${PROJECT_NAME} PRIVATE /W4)
 endif()
