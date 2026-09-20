@@ -85,9 +85,10 @@ namespace serpent_bench
       }
 
       // Reads a whole document into an object that already exists, so its containers keep the
-      // storage they had - the same discipline as the libraries that read into an lvalue.
+      // storage they had - the same discipline as the libraries that read into an lvalue. From
+      // a std::string, which serpent reads trusting the zero byte after it as glaze reads one.
       template <class T>
-      bool read(T& obj, std::string_view buffer)
+      bool read(T& obj, const std::string& buffer)
       {
          return serpent::json::decode_into(buffer, obj);
       }
@@ -163,10 +164,11 @@ namespace serpent_bench
       return result;
    }
 
-   abc_timings run_abc(std::string_view buffer, std::size_t iterations)
+   abc_timings run_abc(std::string_view text, std::size_t iterations)
    {
       abc_timings result{};
 
+      const std::string buffer{text};
       abc_t obj{};
 
       const auto t0 = clock::now();
